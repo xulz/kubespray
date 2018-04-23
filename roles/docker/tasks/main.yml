@@ -53,34 +53,34 @@
   with_items: "{{ docker_repo_key_info.repo_keys }}"
   when: not (ansible_os_family in ["CoreOS", "Container Linux by CoreOS", "RedHat", "Suse"] or is_atomic)
 
-- name: ensure docker-ce repository is enabled
-  action: "{{ docker_repo_info.pkg_repo }}"
-  args:
-    repo: "{{item}}"
-    state: present
-  with_items: "{{ docker_repo_info.repos }}"
-  when: not (ansible_os_family in ["CoreOS", "Container Linux by CoreOS", "RedHat", "Suse"] or is_atomic) and (docker_repo_info.repos|length > 0)
+# - name: ensure docker-ce repository is enabled
+#   action: "{{ docker_repo_info.pkg_repo }}"
+#   args:
+#     repo: "{{item}}"
+#     state: present
+#   with_items: "{{ docker_repo_info.repos }}"
+#   when: not (ansible_os_family in ["CoreOS", "Container Linux by CoreOS", "RedHat", "Suse"] or is_atomic) and (docker_repo_info.repos|length > 0)
 
-- name: ensure docker-engine repository public key is installed
-  action: "{{ dockerproject_repo_key_info.pkg_key }}"
-  args:
-    id: "{{item}}"
-    url: "{{dockerproject_repo_key_info.url}}"
-    state: present
-  register: keyserver_task_result
-  until: keyserver_task_result|succeeded
-  retries: 4
-  delay: "{{ retry_stagger | random + 3 }}"
-  with_items: "{{ dockerproject_repo_key_info.repo_keys }}"
-  when: not (ansible_os_family in ["CoreOS", "Container Linux by CoreOS", "RedHat", "Suse"] or is_atomic)
+# - name: ensure docker-engine repository public key is installed
+#   action: "{{ dockerproject_repo_key_info.pkg_key }}"
+#   args:
+#     id: "{{item}}"
+#     url: "{{dockerproject_repo_key_info.url}}"
+#     state: present
+#   register: keyserver_task_result
+#   until: keyserver_task_result|succeeded
+#   retries: 4
+#   delay: "{{ retry_stagger | random + 3 }}"
+#   with_items: "{{ dockerproject_repo_key_info.repo_keys }}"
+#   when: not (ansible_os_family in ["CoreOS", "Container Linux by CoreOS", "RedHat", "Suse"] or is_atomic)
 
-- name: ensure docker-engine repository is enabled
-  action: "{{ dockerproject_repo_info.pkg_repo }}"
-  args:
-    repo: "{{item}}"
-    state: present
-  with_items: "{{ dockerproject_repo_info.repos }}"
-  when: not (ansible_os_family in ["CoreOS", "Container Linux by CoreOS", "RedHat", "Suse"] or is_atomic) and (dockerproject_repo_info.repos|length > 0)
+# - name: ensure docker-engine repository is enabled
+#   action: "{{ dockerproject_repo_info.pkg_repo }}"
+#   args:
+#     repo: "{{item}}"
+#     state: present
+#   with_items: "{{ dockerproject_repo_info.repos }}"
+#   when: not (ansible_os_family in ["CoreOS", "Container Linux by CoreOS", "RedHat", "Suse"] or is_atomic) and (dockerproject_repo_info.repos|length > 0)
 
 - name: Configure docker repository on RedHat/CentOS
   template:
@@ -132,13 +132,13 @@
   register: installed_docker_version
   changed_when: false
 
-- name: check minimum docker version for docker_dns mode. You need at least docker version >= 1.12 for resolvconf_mode=docker_dns
-  fail:
-    msg: "You need at least docker version >= 1.12 for resolvconf_mode=docker_dns"
-  when: >
-        dns_mode != 'none' and
-        resolvconf_mode == 'docker_dns' and
-        installed_docker_version.stdout|version_compare('1.12', '<')
+# - name: check minimum docker version for docker_dns mode. You need at least docker version >= 1.12 for resolvconf_mode=docker_dns
+#   fail:
+#     msg: "You need at least docker version >= 1.12 for resolvconf_mode=docker_dns"
+#   when: >
+#         dns_mode != 'none' and
+#         resolvconf_mode == 'docker_dns' and
+#         installed_docker_version.stdout|version_compare('1.12', '<')
 
 - name: Set docker systemd config
   import_tasks: systemd.yml

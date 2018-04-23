@@ -26,14 +26,14 @@ yum_conf: /etc/yum.conf
 docker_yum_conf: /etc/yum_docker.conf
 
 # CentOS/RedHat docker-ce repo
-docker_rh_repo_base_url: 'https://download.docker.com/linux/centos/7/$basearch/stable'
-docker_rh_repo_gpgkey: 'https://download.docker.com/linux/centos/gpg'
+docker_rh_repo_base_url: 'https://mirrors.ustc.edu.cn/docker-ce/linux/centos/7/$basearch/stable'
+docker_rh_repo_gpgkey: 'https://mirrors.ustc.edu.cn/docker-ce/linux/centos/gpg'
 # Ubuntu docker-ce repo
-docker_ubuntu_repo_base_url: "https://download.docker.com/linux/ubuntu"
-docker_ubuntu_repo_gpgkey: 'https://download.docker.com/linux/ubuntu/gpg'
+docker_ubuntu_repo_base_url: "https://mirrors.ustc.edu.cn/docker-ce/linux/ubuntu"
+docker_ubuntu_repo_gpgkey: 'https://mirrors.ustc.edu.cn/docker-ce/linux/ubuntu/gpg'
 # Debian docker-ce repo
-docker_debian_repo_base_url: "https://download.docker.com/linux/debian"
-docker_debian_repo_gpgkey: 'https://download.docker.com/linux/debian/gpg'
+docker_debian_repo_base_url: "https://mirrors.ustc.edu.cn/docker-ce/linux/debian"
+docker_debian_repo_gpgkey: 'https://mirrors.ustc.edu.cn/docker-ce/linux/debian/gpg'
 # dockerproject repo
 dockerproject_rh_repo_base_url: 'https://yum.dockerproject.org/repo/main/centos/7'
 dockerproject_rh_repo_gpgkey: 'https://yum.dockerproject.org/gpg'
