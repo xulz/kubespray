@@ -8,6 +8,23 @@ Openstack.
 This will install a Kubernetes cluster on an Openstack Cloud. It should work on
 most modern installs of OpenStack that support the basic services.
 
+### Known compatible public clouds
+- [Auro](https://auro.io/)
+- [BetaCloud](https://www.betacloud.io/)
+- [CityCloud](https://www.citycloud.com/)
+- [DreamHost](https://www.dreamhost.com/cloud/computing/)
+- [ELASTX](https://elastx.se/)
+- [EnterCloudSuite](https://www.entercloudsuite.com/)
+- [FugaCloud](https://fuga.cloud/)
+- [OVH](https://www.ovh.com/)
+- [Rackspace](https://www.rackspace.com/)
+- [Ultimum](https://ultimum.io/)
+- [VexxHost](https://vexxhost.com/)
+- [Zetta](https://www.zetta.io/)
+
+### Known incompatible public clouds
+- T-Systems / Open Telekom Cloud: requires `wait_until_associated`
+
 ## Approach
 The terraform configuration inspects variables found in
 [variables.tf](variables.tf) to create resources in your OpenStack cluster.
@@ -32,7 +49,11 @@ floating IP addresses or not.
 - Kubernetes worker nodes
 
 Note that the Ansible script will report an invalid configuration if you wind up
-with an even number of etcd instances since that is not a valid configuration.
+with an even number of etcd instances since that is not a valid configuration. This
+restriction includes standalone etcd nodes that are deployed in a cluster along with
+master nodes with etcd replicas. As an example, if you have three master nodes with 
+etcd replicas and three standalone etcd nodes, the script will fail since there are 
+now six total etcd replicas.
 
 ### GlusterFS
 The Terraform configuration supports provisioning of an optional GlusterFS
@@ -135,7 +156,7 @@ the one you want to use with the environment variable `OS_CLOUD`:
 export OS_CLOUD=mycloud
 ```
 
-##### Openrc method (deprecated)
+##### Openrc method
 
 When using classic environment variables, Terraform uses default `OS_*`
 environment variables.  A script suitable for your environment may be available
@@ -218,6 +239,10 @@ For your cluster, edit `inventory/$CLUSTER/cluster.tf`.
 |`number_of_bastions` | Number of bastion hosts to create. Scripts assume this is really just zero or one |
 |`number_of_gfs_nodes_no_floating_ip` | Number of gluster servers to provision. |
 | `gfs_volume_size_in_gb` | Size of the non-ephemeral volumes to be attached to store the GlusterFS bricks |
+|`supplementary_master_groups` | To add ansible groups to the masters, such as `kube-node` for tainting them as nodes, empty by default. |
+|`supplementary_node_groups` | To add ansible groups to the nodes, such as `kube-ingress` for running ingress controller pods, empty by default. |
+|`bastion_allowed_remote_ips` | List of CIDR allowed to initiate a SSH connection, `["0.0.0.0/0"]` by default |
+|`worker_allowed_ports` | List of ports to open on worker nodes, `[{ "protocol" = "tcp", "port_range_min" = 30000, "port_range_max" = 32767, "remote_ip_prefix" = "0.0.0.0/0"}]` by default |
 
 #### Terraform state files
 
@@ -253,7 +278,7 @@ $ terraform apply -var-file=cluster.tf ../../contrib/terraform/openstack
 
 if you chose to create a bastion host, this script will create
 `contrib/terraform/openstack/k8s-cluster.yml` with an ssh command for Ansible to
-be able to access your machines tunneling  through the bastion's IP address. If
+be able to access your machines tunneling through the bastion's IP address. If
 you want to manually handle the ssh tunneling to these machines, please delete
 or move that file. If you want to use this, just leave it there, as ansible will
 pick it up automatically.
@@ -299,11 +324,15 @@ If you have deployed and destroyed a previous iteration of your cluster, you wil
 
 #### Bastion host
 
-If you are not using a bastion host, but not all of your nodes have floating IPs, create a file `inventory/$CLUSTER/group_vars/no-floating.yml` with the following content.  Use one of your nodes with a floating IP (this should have been output at the end of the Terraform step) and the appropriate user for that OS, or if you have another jump host, use that.
+Bastion access will be determined by:
 
-```
-ansible_ssh_common_args: '-o ProxyCommand="ssh -o StrictHostKeyChecking=no -W %h:%p -q USER@MASTER_IP"'
-```
+ - Your choice on the amount of bastion hosts (set by `number_of_bastions` terraform variable).
+ - The existence of nodes/masters with floating IPs (set by `number_of_k8s_masters`, `number_of_k8s_nodes`, `number_of_k8s_masters_no_etcd` terraform variables).
+
+If you have a bastion host, your ssh traffic will be directly routed through it. This is regardless of whether you have masters/nodes with a floating IP assigned.
+If you don't have a bastion host, but at least one of your masters/nodes have a floating IP, then ssh traffic will be tunneled by one of these machines.
+
+So, either a bastion host, or at least master/node with a floating IP are required.
 
 #### Test access
 
@@ -330,11 +359,6 @@ If it fails try to connect manually via SSH.  It could be something as simple as
 ### Configure cluster variables
 
 Edit `inventory/$CLUSTER/group_vars/all.yml`:
-- Set variable **bootstrap_os** appropriately for your desired image:
-```
-# Valid bootstrap options (required): ubuntu, coreos, centos, none
-bootstrap_os: coreos
-```
 - **bin_dir**:
 ```
 # Directory where the binaries will be installed
@@ -412,14 +436,6 @@ $ kubectl config use-context default-system
 ```
 kubectl version
 ```
-
-If you are using floating ip addresses then you may get this error:
-```
-Unable to connect to the server: x509: certificate is valid for 10.0.0.6, 10.0.0.6, 10.233.0.1, 127.0.0.1, not 132.249.238.25
-```
-
-You can tell kubectl to ignore this condition by adding the
-`--insecure-skip-tls-verify` option.
 
 ## GlusterFS
 GlusterFS is not deployed by the standard`cluster.yml` playbook, see the

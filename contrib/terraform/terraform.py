@@ -328,6 +328,7 @@ def openstack_host(resource, module_name):
     attrs = {
         'access_ip_v4': raw_attrs['access_ip_v4'],
         'access_ip_v6': raw_attrs['access_ip_v6'],
+        'access_ip': raw_attrs['access_ip_v4'],
         'ip': raw_attrs['network.0.fixed_ip_v4'],
         'flavor': parse_dict(raw_attrs, 'flavor',
                              sep='_'),
@@ -685,6 +686,7 @@ def iter_host_ips(hosts, ips):
             ip = ips[host_id]
             host[1].update({
                 'access_ip_v4': ip,
+                'access_ip': ip,
                 'public_ipv4': ip,
                 'ansible_ssh_host': ip,
             })
@@ -706,6 +708,10 @@ def query_list(hosts):
 
     for name, attrs, hostgroups in hosts:
         for group in set(hostgroups):
+            # Ansible 2.6.2 stopped supporting empty group names: https://github.com/ansible/ansible/pull/42584/commits/d4cd474b42ed23d8f8aabb2a7f84699673852eaf
+            # Empty group name defaults to "all" in Ansible < 2.6.2 so we alter empty group names to "all"
+            if not group: group = "all"
+
             groups[group].setdefault('hosts', [])
             groups[group]['hosts'].append(name)
 

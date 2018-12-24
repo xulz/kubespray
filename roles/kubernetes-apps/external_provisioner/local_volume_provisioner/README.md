@@ -3,7 +3,7 @@ Local Storage Provisioner
 
 The local storage provisioner is NOT a dynamic storage provisioner as you would
 expect from a cloud provider. Instead, it simply creates PersistentVolumes for
-all manually created volumes located in the directory `local_volume_provisioner_base_dir`.
+all manually created volumes located in the directories specified in the `local_volume_provisioner_storage_classes.host_dir` entries.
 The default path is /mnt/disks and the rest of this doc will use that path as
 an example.
 
@@ -46,17 +46,19 @@ to limit the quota of persistent volumes.
 
 ### Simple directories
 
-``` bash
-for vol in vol6 vol7 vol8; do
-mkdir /mnt/disks/$vol
-done
-```
-
-This is also acceptable in a development environment, but there is no capacity
+In a development environment using `mount --bind` works also, but there is no capacity
 management.
+
+### Block volumeMode PVs
+
+Create a symbolic link under discovery directory to the block device on the node. To use
+raw block devices in pods BlockVolume feature gate must be enabled.
 
 Usage notes
 -----------
+
+Beta PV.NodeAffinity field is used by default. If running against an older K8s
+version, the useAlphaAPI flag must be set in the configMap.
 
 The volume provisioner cannot calculate volume sizes correctly, so you should
 delete the daemonset pod on the relevant host after creating volumes. The pod

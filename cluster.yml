@@ -1,5 +1,33 @@
 ---
 - hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: "Check ansible version !=2.7.0"
+      assert:
+        msg: "Ansible V2.7.0 can't be used until: https://github.com/ansible/ansible/issues/46600 is fixed"
+        that:
+          - ansible_version.string is version("2.7.0", "!=")
+          - ansible_version.string is version("2.5.0", ">=")
+      tags:
+        - check
+  vars:
+    ansible_connection: local
+
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: deploy warning for non kubeadm
+      debug:
+        msg: "DEPRECATION: non-kubeadm deployment is deprecated from v2.9. Will be removed in next release."
+      when: not kubeadm_enabled and not skip_non_kubeadm_warning
+
+    - name: deploy cluster for non kubeadm
+      pause:
+        prompt: "Are you sure you want to deploy cluster using the deprecated non-kubeadm mode."
+        echo: no
+      when: not kubeadm_enabled and not skip_non_kubeadm_warning
+
+- hosts: bastion[0]
   gather_facts: False
   roles:
     - { role: kubespray-defaults}
@@ -33,38 +61,21 @@
   roles:
     - { role: kubespray-defaults}
     - { role: kubernetes/preinstall, tags: preinstall }
-    - { role: docker, tags: docker }
-    - role: rkt
-      tags: rkt
-      when: "'rkt' in [etcd_deployment_type, kubelet_deployment_type, vault_deployment_type]"
-    - { role: download, tags: download, skip_downloads: false }
-  environment: "{{proxy_env}}"
-
-- hosts: etcd:k8s-cluster:vault:calico-rr
-  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
-  roles:
-    - { role: kubespray-defaults, when: "cert_management == 'vault'" }
-    - { role: vault, tags: vault, vault_bootstrap: true, when: "cert_management == 'vault'" }
+    - { role: "container-engine", tags: "container-engine", when: deploy_container_engine|default(true) }
+    - { role: download, tags: download, when: "not skip_downloads" }
   environment: "{{proxy_env}}"
 
 - hosts: etcd
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
     - { role: kubespray-defaults}
-    - { role: etcd, tags: etcd, etcd_cluster_setup: true }
+    - { role: etcd, tags: etcd, etcd_cluster_setup: true, etcd_events_cluster_setup: "{{ etcd_events_cluster_enabled }}" }
 
 - hosts: k8s-cluster:calico-rr
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
     - { role: kubespray-defaults}
-    - { role: etcd, tags: etcd, etcd_cluster_setup: false }
-
-- hosts: etcd:k8s-cluster:vault:calico-rr
-  any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
-  roles:
-    - { role: kubespray-defaults}
-    - { role: vault, tags: vault, when: "cert_management == 'vault'"}
-  environment: "{{proxy_env}}"
+    - { role: etcd, tags: etcd, etcd_cluster_setup: false, etcd_events_cluster_setup: false }
 
 - hosts: k8s-cluster
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
@@ -93,6 +104,7 @@
   roles:
     - { role: kubespray-defaults}
     - { role: kubernetes-apps/rotate_tokens, tags: rotate_tokens, when: "secret_changed|default(false)" }
+    - { role: win_nodes/kubernetes_patch, tags: ["master", "win_nodes"], when: "kubeadm_enabled" }
 
 - hosts: kube-master
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
@@ -114,10 +126,10 @@
   roles:
     - { role: kubespray-defaults}
     - { role: dnsmasq, when: "dns_mode == 'dnsmasq_kubedns'", tags: dnsmasq }
-    - { role: kubernetes/preinstall, when: "dns_mode != 'none' and resolvconf_mode == 'host_resolvconf'", tags: resolvconf }
+    - { role: kubernetes/preinstall, when: "dns_mode != 'none' and resolvconf_mode == 'host_resolvconf'", tags: resolvconf, dns_late: true }
   environment: "{{proxy_env}}"
 
-- hosts: kube-master[0]
+- hosts: kube-master
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
     - { role: kubespray-defaults}

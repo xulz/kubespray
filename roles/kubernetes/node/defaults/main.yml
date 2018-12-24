@@ -14,8 +14,11 @@ kubelet_bind_address: "{{ ip | default('0.0.0.0') }}"
 # resolv.conf to base dns config
 kube_resolv_conf: "/etc/resolv.conf"
 
+# bind address for kube-proxy health check
+kube_proxy_healthz_bind_address: "127.0.0.1"
+
 # Can be ipvs, iptables
-kube_proxy_mode: iptables
+kube_proxy_mode: ipvs
 
 # If using the pure iptables proxy, SNAT everything. Note that it breaks any
 # policy engine.
@@ -27,6 +30,11 @@ kubelet_enable_cri: true
 kubelet_cgroups_per_qos: true
 # Set to empty to avoid cgroup creation
 kubelet_enforce_node_allocatable: "\"\""
+
+# Set runtime cgroups
+kubelet_runtime_cgroups: "/systemd/system.slice"
+# Set kubelet cgroups
+kubelet_kubelet_cgroups: "/systemd/system.slice"
 
 # Set false to enable sharing a pid namespace between containers in a pod.
 # Note that PID namespace sharing requires docker >= 1.13.1.
@@ -60,6 +68,7 @@ nginx_cpu_requests: 25m
 
 nginx_image_repo: nginx
 nginx_image_tag: 1.13
+nginx_config_dir: "/etc/nginx"
 
 etcd_config_dir: /etc/ssl/etcd
 
@@ -71,12 +80,19 @@ kube_apiserver_node_port_range: "30000-32767"
 
 kubelet_load_modules: false
 
+# Configure the amount of pods able to run on single node
+# default is equal to application default
+kubelet_max_pods: 110
+
 ## Support custom flags to be passed to kubelet
 kubelet_custom_flags: []
 
+## Support custom flags to be passed to kubelet only on nodes, not masters
+kubelet_node_custom_flags: []
+
 # This setting is used for rkt based kubelet for deploying hyperkube
 # from a docker based registry ( controls --insecure and docker:// )
-## Empty vaule for quay.io containers
+## Empty value for quay.io containers
 ## docker for docker registry containers
 kube_hyperkube_image_repo: ""
 
@@ -93,6 +109,8 @@ kube_cadvisor_port: 0
 # The read-only port for the Kubelet to serve on with no authentication/authorization.
 kube_read_only_port: 0
 
+# sysctl_file_path to add sysctl conf to
+sysctl_file_path: "/etc/sysctl.d/99-sysctl.conf"
 
 # For the openstack integration kubelet will need credentials to access
 # openstack apis like nova and cinder. Per default this values will be
@@ -101,7 +119,8 @@ openstack_auth_url: "{{ lookup('env','OS_AUTH_URL')  }}"
 openstack_username: "{{ lookup('env','OS_USERNAME')  }}"
 openstack_password: "{{ lookup('env','OS_PASSWORD')  }}"
 openstack_region: "{{ lookup('env','OS_REGION_NAME')  }}"
-openstack_tenant_id: "{{ lookup('env','OS_TENANT_ID')| default(lookup('env','OS_PROJECT_ID')|default(lookup('env','OS_PROJECT_NAME'),true)) }}"
+openstack_tenant_id: "{{ lookup('env','OS_TENANT_ID')| default(lookup('env','OS_PROJECT_ID')|default(lookup('env','OS_PROJECT_NAME'),true),true) }}"
+openstack_tenant_name: "{{ lookup('env','OS_TENANT_NAME') }}"
 openstack_domain_name: "{{ lookup('env','OS_USER_DOMAIN_NAME') }}"
 openstack_domain_id: "{{ lookup('env','OS_USER_DOMAIN_ID') }}"
 
@@ -125,13 +144,13 @@ vsphere_public_network: "{{ lookup('env', 'VSPHERE_PUBLIC_NETWORK')|default('') 
 
 ## When azure is used, you need to also set the following variables.
 ## see docs/azure.md for details on how to get these values
-#azure_tenant_id:
-#azure_subscription_id:
-#azure_aad_client_id:
-#azure_aad_client_secret:
-#azure_resource_group:
-#azure_location:
-#azure_subnet_name:
-#azure_security_group_name:
-#azure_vnet_name:
-#azure_route_table_name:
+# azure_tenant_id:
+# azure_subscription_id:
+# azure_aad_client_id:
+# azure_aad_client_secret:
+# azure_resource_group:
+# azure_location:
+# azure_subnet_name:
+# azure_security_group_name:
+# azure_vnet_name:
+# azure_route_table_name:
